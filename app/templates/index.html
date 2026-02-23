@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR Resume Agent</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked@latest/marked.min.js"></script>
+</head>
+<body>
+    <!-- Mobile Menu Toggle -->
+    <button id="sidebarToggle" class="mobile-toggle" aria-label="Toggle menu">
+        <span></span>
+    </button>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar">
+        <header class="sidebar-header">
+            <h1>🤖 HR Resume Agent</h1>
+        </header>
+
+        <!-- Upload Section -->
+        <section class="upload-section">
+            <h2 class="section-title">Upload Resumes</h2>
+
+            <div id="dropZone" class="drop-zone">
+                <div class="drop-zone-content">
+                    <svg class="drop-zone-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <p class="drop-zone-text">Drop PDF/DOCX files here</p>
+                    <p class="drop-zone-subtext">or click to browse</p>
+                </div>
+                <input type="file" id="fileInput" multiple accept=".pdf,.docx" hidden>
+            </div>
+
+            <!-- Selected files list -->
+            <div id="fileList" class="file-list"></div>
+
+            <!-- Position Tag -->
+            <div class="form-group">
+                <input
+                    type="text"
+                    id="positionTag"
+                    class="position-tag-input"
+                    placeholder="Position tag (optional)"
+                    maxlength="100"
+                >
+            </div>
+
+            <!-- Buttons -->
+            <button id="uploadBtn" class="upload-btn" disabled>Upload Files</button>
+            <button id="clearFilesBtn" class="clear-files-btn" style="display:none">Clear</button>
+        </section>
+
+        <!-- Resume List Section -->
+        <section class="resume-section">
+            <div class="resume-section-header">
+                <h2>Uploaded Resumes <span id="resumeCount" class="resume-count">0</span></h2>
+            </div>
+            <div id="resumeList" class="resume-list">
+                <p class="empty-state">No resumes uploaded yet</p>
+            </div>
+        </section>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <!-- Chat Header -->
+        <header class="chat-header">
+            <h2>Chat</h2>
+            <button id="newChatBtn" class="new-chat-btn">+ New Chat</button>
+        </header>
+
+        <!-- Chat Messages -->
+        <div id="chatMessages" class="chat-messages"></div>
+
+        <!-- Chat Input Bar -->
+        <div class="chat-input-bar">
+            <select id="chatPositionTag" class="position-scope-select">
+                <option value="">All Positions</option>
+            </select>
+            <textarea
+                id="chatInput"
+                class="chat-input"
+                placeholder="Describe the role or ask about candidates..."
+                rows="1"
+                maxlength="2000"
+            ></textarea>
+            <button id="sendBtn" class="send-btn" disabled aria-label="Send message">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+            </button>
+        </div>
+    </main>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
