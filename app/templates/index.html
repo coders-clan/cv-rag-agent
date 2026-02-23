@@ -79,8 +79,13 @@
 
         <!-- Chat Input Bar -->
         <div class="chat-input-bar">
-            <select id="chatPositionTag" class="position-scope-select">
+            <select id="chatPositionTag" class="position-scope-select" title="Filter by position">
                 <option value="">All Positions</option>
+            </select>
+            <select id="modelSelect" class="model-selector" title="Select AI Model">
+                <option value="claude-sonnet-4-5-20250929">Sonnet 4.5</option>
+                <option value="claude-3-5-haiku-20241022">Haiku 3.5</option>
+                <option value="claude-opus-4-5-20250929">Opus 4.5</option>
             </select>
             <textarea
                 id="chatInput"

@@ -35,6 +35,7 @@ function init() {
   setupEventListeners();
   loadResumes();
   showWelcomeMessage();
+  loadModelPreference();
 }
 
 /**
@@ -83,6 +84,12 @@ function setupEventListeners() {
 
   if (newChatBtn) {
     newChatBtn.addEventListener('click', newChat);
+  }
+
+  // Model selector
+  const modelSelect = document.getElementById('modelSelect');
+  if (modelSelect) {
+    modelSelect.addEventListener('change', saveModelPreference);
   }
 
   // Mobile sidebar toggle
@@ -454,6 +461,7 @@ async function streamChat(message) {
         message,
         session_id: state.sessionId,
         position_tag: getCurrentPositionTag(),
+        model: getSelectedModel(),
       }),
     });
 
@@ -691,6 +699,39 @@ function getCurrentPositionTag() {
   const select = document.getElementById('chatPositionTag');
   const value = select ? select.value.trim() : '';
   return value || null;
+}
+
+/**
+ * Get selected model from dropdown
+ */
+function getSelectedModel() {
+  const select = document.getElementById('modelSelect');
+  return select ? select.value : null;
+}
+
+/**
+ * Load model preference from localStorage
+ */
+function loadModelPreference() {
+  const savedModel = localStorage.getItem('selectedModel');
+  const modelSelect = document.getElementById('modelSelect');
+  if (savedModel && modelSelect) {
+    // Verify the saved model is a valid option
+    const options = Array.from(modelSelect.options).map(opt => opt.value);
+    if (options.includes(savedModel)) {
+      modelSelect.value = savedModel;
+    }
+  }
+}
+
+/**
+ * Save model preference to localStorage
+ */
+function saveModelPreference() {
+  const modelSelect = document.getElementById('modelSelect');
+  if (modelSelect) {
+    localStorage.setItem('selectedModel', modelSelect.value);
+  }
 }
 
 /**
