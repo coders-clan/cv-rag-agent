@@ -90,6 +90,7 @@ class ChatRequest(BaseModel):
     message: str
     session_id: str | None = None
     position_tag: str | None = None
+    model: str | None = None  # Optional, defaults to claude-sonnet-4-5-20250929
 
     @field_validator("message")
     @classmethod

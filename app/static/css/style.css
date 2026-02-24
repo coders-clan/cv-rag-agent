@@ -838,6 +838,30 @@ body {
 }
 
 /* ========================================
+   Model Selector (in chat input bar)
+   ======================================== */
+.model-selector {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 1px solid var(--color-agent-border);
+  border-radius: var(--radius-card);
+  font-size: 0.8125rem;
+  background: white;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 0.2s ease;
+}
+
+.model-selector:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.model-selector:hover {
+  border-color: var(--color-primary);
+}
+
+/* ========================================
    Chat Bubbles (JS uses .bubble class)
    ======================================== */
 .bubble {

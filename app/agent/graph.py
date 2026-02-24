@@ -6,7 +6,7 @@ three tools: search_resumes, get_candidate_resume, and list_candidates.
 
 Public API
 ----------
-    get_graph()      -- Module-level cached accessor (compile once).
+    get_graph()      -- Returns a compiled graph for the specified model.
     run_agent()      -- Convenience async function to invoke the graph.
     stream_agent()   -- Async generator yielding SSE-friendly token events.
 """
@@ -22,6 +22,18 @@ from app.agent.tools import agent_tools
 from app.config import settings
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
+
+DEFAULT_MODEL = "claude-sonnet-4-5-20250929"
+
+SUPPORTED_MODELS = frozenset({
+    "claude-sonnet-4-5-20250929",
+    "claude-3-5-haiku-20241022",
+    "claude-opus-4-5-20250929",
+})
 
 # ---------------------------------------------------------------------------
 # System prompt
@@ -46,38 +58,68 @@ Be thorough and specific in your analysis. Reference specific experience, \
 skills, and qualifications from the resumes."""
 
 # ---------------------------------------------------------------------------
-# Graph builder
+# Graph builder with model-aware caching
 # ---------------------------------------------------------------------------
 
-_compiled_graph = None
+_graph_cache: dict[str, object] = {}
 
 
-def _get_llm() -> ChatAnthropic:
-    """Return a ChatAnthropic instance configured for the HR agent."""
+def _get_llm(model: str | None = None) -> ChatAnthropic:
+    """Return a ChatAnthropic instance configured for the HR agent.
+
+    Args:
+        model: The Anthropic model to use. If None, uses DEFAULT_MODEL.
+               Must be one of SUPPORTED_MODELS.
+
+    Returns:
+        A configured ChatAnthropic instance.
+
+    Raises:
+        ValueError: If the model is not in SUPPORTED_MODELS.
+    """
+    model_name = model or DEFAULT_MODEL
+
+    if model_name not in SUPPORTED_MODELS:
+        raise ValueError(
+            f"Unsupported model: {model_name}. "
+            f"Supported models: {', '.join(sorted(SUPPORTED_MODELS))}"
+        )
+
     return ChatAnthropic(
-        model="claude-sonnet-4-5-20250929",
+        model=model_name,
         anthropic_api_key=settings.anthropic_api_key,
         streaming=True,
         max_tokens=4096,
     )
 
 
-def get_graph():
-    """Return a module-level cached compiled graph.
+def get_graph(model: str | None = None):
+    """Return a compiled graph for the specified model.
 
-    Uses ``create_react_agent`` which properly supports streaming events
-    through ``astream_events`` and ``astream(stream_mode="messages")``.
+    Graphs are cached per model to avoid recompilation overhead.
+
+    Args:
+        model: The Anthropic model to use. If None, uses DEFAULT_MODEL.
+
+    Returns:
+        A compiled LangGraph ReAct agent.
     """
-    global _compiled_graph
-    if _compiled_graph is None:
-        llm = _get_llm()
-        _compiled_graph = create_react_agent(
-            model=llm,
-            tools=agent_tools,
-            prompt=SYSTEM_PROMPT,
-        )
-        logger.info("HR Resume Agent graph compiled successfully.")
-    return _compiled_graph
+    model_name = model or DEFAULT_MODEL
+
+    if model_name in _graph_cache:
+        logger.debug("Returning cached graph for model: %s", model_name)
+        return _graph_cache[model_name]
+
+    llm = _get_llm(model_name)
+    compiled_graph = create_react_agent(
+        model=llm,
+        tools=agent_tools,
+        prompt=SYSTEM_PROMPT,
+    )
+    _graph_cache[model_name] = compiled_graph
+    logger.info("HR Resume Agent graph compiled for model: %s", model_name)
+
+    return compiled_graph
 
 
 # ---------------------------------------------------------------------------
@@ -111,12 +153,29 @@ async def run_agent(
     top_k: int = 10,
     position_tag: str = "",
     history: Optional[list] = None,
+    model: str | None = None,
 ) -> dict:
-    """Invoke the HR Resume Agent graph and return the final state."""
-    graph = get_graph()
+    """Invoke the HR Resume Agent graph and return the final state.
+
+    Args:
+        message: The user message to process.
+        role_description: Optional role description for context.
+        top_k: Number of results to return from searches.
+        position_tag: Optional position tag filter.
+        history: Previous conversation history.
+        model: The Anthropic model to use. If None, uses DEFAULT_MODEL.
+
+    Returns:
+        The final state dict from the graph invocation.
+    """
+    graph = get_graph(model=model)
     messages = _build_messages(message, history)
 
-    logger.info("run_agent: invoking graph with %d message(s)", len(messages))
+    logger.info(
+        "run_agent: invoking graph with %d message(s) using model %s",
+        len(messages),
+        model or DEFAULT_MODEL,
+    )
 
     final_state = await graph.ainvoke({"messages": messages})
 
@@ -165,10 +224,19 @@ async def stream_agent(
     top_k: int = 10,
     position_tag: str = "",
     history: Optional[list] = None,
+    model: str | None = None,
 ) -> AsyncGenerator[dict, None]:
     """Stream the HR Resume Agent graph, yielding SSE-friendly event dicts.
 
     Uses ``graph.astream(stream_mode="messages")`` for per-token streaming.
+
+    Args:
+        message: The user message to process.
+        role_description: Optional role description for context.
+        top_k: Number of results to return from searches.
+        position_tag: Optional position tag filter.
+        history: Previous conversation history.
+        model: The Anthropic model to use. If None, uses DEFAULT_MODEL.
 
     Yields:
         - ``{"type": "token", "content": "..."}`` for each LLM output token.
@@ -176,11 +244,13 @@ async def stream_agent(
           LLM initiates a tool call.
         - ``{"type": "done"}`` when the graph finishes.
     """
-    graph = get_graph()
+    graph = get_graph(model=model)
     messages = _build_messages(message, history)
 
     logger.info(
-        "stream_agent: starting streaming with %d message(s)", len(messages)
+        "stream_agent: starting streaming with %d message(s) using model %s",
+        len(messages),
+        model or DEFAULT_MODEL,
     )
 
     emitted_tool_calls: set[str] = set()

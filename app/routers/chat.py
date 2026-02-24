@@ -72,6 +72,7 @@ async def _event_generator(
     session_oid: ObjectId,
     history: list[dict],
     position_tag: str | None,
+    model: str | None,
 ):
     """Async generator that yields SSE-formatted strings.
 
@@ -89,6 +90,7 @@ async def _event_generator(
             message=request.message,
             position_tag=position_tag or "",
             history=history or [],
+            model=model,
         ):
             event_type = event.get("type")
 
@@ -163,8 +165,15 @@ async def chat(request: ChatRequest):
         request.position_tag,
     )
 
+    model = request.model
+    logger.info(
+        "Chat request received for session %s using model: %s",
+        session_oid,
+        model or "claude-sonnet-4-5-20250929 (default)",
+    )
+
     return StreamingResponse(
-        _event_generator(request, session_oid, history, position_tag),
+        _event_generator(request, session_oid, history, position_tag, model),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
